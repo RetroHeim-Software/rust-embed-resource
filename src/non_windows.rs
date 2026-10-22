@@ -24,7 +24,10 @@ impl ResourceCompiler {
                 self.compiler = Ok(c);
                 None
             }
-            Err(e) => Some(e),
+            Err(e) => {
+                self.compiler = Err(e.clone());
+                Some(e)
+            }
         }
     }
 

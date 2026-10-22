@@ -11,14 +11,29 @@ use std::env;
 
 
 fn main() {
-    env::set_var("TARGET",
-                 if cfg!(target_arch = "x86_64") {
-                     "x86_64"
-                 } else if cfg!(target_arch = "aarch64") {
-                     "aarch64"
-                 } else {
-                     "irrelevant"
-                 });
+    // Preserve a caller-supplied `TARGET` (the real Rust target triple, e.g.
+    // `x86_64-pc-windows-gnu`) unchanged -- only fall back to a
+    // best-effort-constructed one when the environment doesn't already have
+    // it set. Previously this unconditionally overwrote `TARGET` with just
+    // the bare architecture, discarding the OS/vendor/ABI suffix that
+    // `windows_not_msvc.rs`/`windows_msvc.rs` parse out of it downstream.
+    if env::var_os("TARGET").is_none() {
+        let arch = if cfg!(target_arch = "x86_64") {
+            "x86_64"
+        } else if cfg!(target_arch = "aarch64") {
+            "aarch64"
+        } else {
+            "irrelevant"
+        };
+        let vendor_os_abi = if cfg!(target_os = "windows") {
+            "pc-windows-msvc"
+        } else if cfg!(target_os = "macos") {
+            "apple-darwin"
+        } else {
+            "unknown-linux-gnu"
+        };
+        env::set_var("TARGET", format!("{arch}-{vendor_os_abi}"));
+    }
     #[cfg(target_os = "windows")]
     env::set_var("HOST", env::var_os("TARGET").unwrap());
 
